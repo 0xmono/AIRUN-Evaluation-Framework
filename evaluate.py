@@ -20,18 +20,17 @@ def get_gpt4_model():
     openai_deploymet_name = "gpt-4o-2024-05-13"
     openai_api_version = "2024-05-01-preview"
 
-    # Read API key from the environment variables
-    azure_api_key = os.environ["AZURE_API_KEY"]
-    if not azure_api_key:
-        raise ValueError("AZURE_API_KEY environment variable is not set")
+    openai_api_key = os.environ["OPENAI_API_KEY"]
+    if not openai_api_key:
+        raise ValueError("OPENAI_API_KEY environment variable is not set")
 
-    # Define GPT-4-omni model
-    model = AzureChatOpenAI(
-        temperature=0,  # request deterministic behavior
-        azure_endpoint=openai_endpoint,
-        azure_deployment=openai_deploymet_name,
-        api_version=openai_api_version,
-        api_key=azure_api_key,
+    model = ChatOpenAI(
+        model="gpt-4o",
+        temperature=0,
+        max_tokens=None,
+        timeout=None,
+        max_retries=2,
+        api_key=openai_api_key,
     )
 
     return model
