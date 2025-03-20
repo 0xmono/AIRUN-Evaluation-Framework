@@ -9,6 +9,7 @@ import yaml
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 from langchain_openai import AzureChatOpenAI
+from langchain_openai import ChatOpenAI
 
 
 import numpy as np
@@ -167,6 +168,9 @@ class EvaluationResult:
         """
         self.probabilities: List[Tuple[int, float]] = []
         self.metadata: Dict[str, Any] = {}
+
+    def __str__(self):
+        return f"MyClass(probabilities={self.probabilities}, metadata={self.metadata})"
 
     def set_probabilities(self, top_logprobs: List[dict]) -> None:
         """
@@ -446,6 +450,115 @@ def get_scenario_file(base_path: str, scenario_id: str, filename: str) -> str:
 
 
 def evaluate_scenario(
+    base_path: str,
+    output: str,
+    metadata_path: str,
+    evaluation_model: ChatOpenAI,
+    grading_model: ChatOpenAI
+) -> Tuple[EvaluationResult, EvaluationResult]:
+    """
+    Evaluate a single scenario from a dataset.
+
+    This function reads the scenario data, evaluates completeness and accuracy,
+    and grades the evaluation reports.
+
+    Args:
+        base_path (str): The base path to the scenario files.
+        scenario_id (str): The ID of the scenario to evaluate.
+        model (AzureChatOpenAI): The AI model used for evaluation and grading.
+
+    Returns:
+        Tuple[EvaluationResult, EvaluationResult]: A tuple containing the
+        accuracy and completeness evaluation results.
+    """
+    print(f"base_path: {base_path}.")
+
+    if not os.path.exists(metadata_path):
+        raise FileNotFoundError(f"File not found: {metadata_path}")
+    metadata_content = read_file(metadata_path)
+
+    metadata: Dict[str, Any] = yaml.safe_load(metadata_content)
+    meta: Dict[str, Any] = metadata.get("metadata", {})
+    evaluation_steps: Dict[str, List[str]] = metadata.get(
+        "evaluation_steps", {}
+    )
+
+    completeness_evaluation_steps: List[str] = evaluation_steps.get(
+        "completeness", []
+    )
+    accuracy_evaluation_steps: List[str] = evaluation_steps.get(
+        "accuracy", []
+    )
+
+    completeness_report: str = evaluate_metric(
+        completeness_evaluation_steps, output, evaluation_model
+    )
+
+    base_dir_name = os.path.basename(base_path)
+
+    try:
+        write_file(
+            os.path.join(base_path, f"{base_dir_name}_completeness.md"),
+            completeness_report,
+        )
+    except FileNotFoundError:
+        logger.error(
+            "Scenario directory not found: %s/%s. "
+            "Skipping completeness report.",
+            base_path,
+            scenario_id
+        )
+    except OSError as e:
+        logger.error(
+            "Failed to write completeness report for scenario %s: %s",
+            scenario_id,
+            e
+        )
+
+    accuracy_report: str = evaluate_metric(
+        accuracy_evaluation_steps, output, evaluation_model
+    )
+
+    try:
+        write_file(
+            os.path.join(base_path, f"{base_dir_name}_accuracy.md"),
+            accuracy_report,
+        )
+    except FileNotFoundError:
+        logger.error(
+            "Scenario directory not found: %s/%s. "
+            "Skipping accuracy report.",
+            base_path,
+            scenario_id
+        )
+    except OSError as e:
+        logger.error(
+            "Failed to write accuracy report for scenario %s: %s",
+            scenario_id,
+            e
+        )
+
+    model_with_logprobs: ChatOpenAI = grading_model.bind(
+        logprobs=True
+    ).bind(
+        top_logprobs=5
+    )
+
+    print(f"Grading {base_path}")
+    accuracy: EvaluationResult = grade_metric(
+        accuracy_report, model_with_logprobs
+    )
+    print(f"accuracy {accuracy}")
+    accuracy.set_metadata(meta)
+
+    completeness: EvaluationResult = grade_metric(
+        completeness_report, model_with_logprobs
+    )
+    completeness.set_metadata(meta)
+
+    return (accuracy, completeness)
+
+def evaluate_scenario_by_id(
     base_path: str,
     scenario_id: str,
     evaluation_model: AzureChatOpenAI,
