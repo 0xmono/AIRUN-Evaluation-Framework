@@ -5,6 +5,15 @@ Test the EvaluationReport class.
 # flake8: noqa: E501
 
 import pytest
+
+# Add the src directory to Python's module search path, to run this file as `python evaluate.py`
+import os
+import sys
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+src_dir = os.path.join(project_dir, "src")
+sys.path.append(src_dir)
+
 from epam.auto_llm_eval.evaluation_report import EvaluationReport, EvaluationStep
 
 
