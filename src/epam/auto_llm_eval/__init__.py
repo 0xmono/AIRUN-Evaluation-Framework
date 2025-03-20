@@ -12,6 +12,7 @@ from epam.auto_llm_eval.evaluation_report import (
     EvaluationStep
 )
 from epam.auto_llm_eval.ollama_adapter import get_ollama_model
+from epam.auto_llm_eval.llamacpp_server import LlamaServerWrapper
 
 __all__ = [
     "EvaluationResult",
@@ -20,5 +21,6 @@ __all__ = [
     "grade_metric",
     "EvaluationReport",
     "EvaluationStep",
-    "get_ollama_model"
+    "get_ollama_model",
+    "LlamaServerWrapper"
 ]
