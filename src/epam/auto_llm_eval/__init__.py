@@ -11,6 +11,7 @@ from epam.auto_llm_eval.evaluation_report import (
     EvaluationReport,
     EvaluationStep
 )
+from epam.auto_llm_eval.ollama_adapter import get_ollama_model
 
 __all__ = [
     "EvaluationResult",
@@ -18,5 +19,6 @@ __all__ = [
     "evaluate_metric",
     "grade_metric",
     "EvaluationReport",
-    "EvaluationStep"
+    "EvaluationStep",
+    "get_ollama_model"
 ]
